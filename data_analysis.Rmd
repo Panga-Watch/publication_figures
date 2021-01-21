@@ -1,0 +1,375 @@
+---
+title: "Analysis"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    toc: true
+    toc_float: yes
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+  pdf_document:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## Summary
+Mixed Logit Analysis on the DRCE conducted in Indonesia and Mexico. Split into four different models; Standard opt-out model (Model I), Pooled (Model II), Unforced Responses (Model III), and Forced Responses (Model IV).
+
+## Data Source 
+Personal Interviews
+ 
+## Reference 
+Panga Watch
+ 
+## Downloaded
+September 30, 2019
+ 
+Time range: 
+2019
+ 
+## Format
+comma separated values
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(survival)
+library(AlgDesign)
+library(DT)
+library(stargazer)
+library(xtable)
+library(here)
+library(kableExtra)
+
+master_survey <- read.csv("raw/master_survey_resp.csv", stringsAsFactors = TRUE) %>%
+  select(-start, -end, -survey_type, -interviewer, -comment, -text_vms_adoption, -fishery_problem_one, -fishery_problem_two, -fishery_problem_three, -fishery_solution_one, -fishery_solution_two, -fishery_solution_three, -photo)
+```
+
+## Standard opt-out model (Model I)
+```{r}
+standard_opt_out <- read_csv("int/standard_opt_out_fix.csv") %>%
+  left_join(master_survey, by = "survey_id") %>%
+  select(-noalt)
+
+standard_clogit <- clogit(RES~ASC+sos+info+own.fisher+own.industry+own.gov + strata(survey_version), data=standard_opt_out) # run the clogit. ASC represents the alternative specific constant, or the opt out option.
+summary(standard_clogit)
+
+
+```
+
+
+## Pooled (Model II)
+```{r}
+pooled <- read_csv("int/pooled_data_fix.csv") %>%
+  left_join(master_survey, by = "survey_id") %>%
+  select(-noalt) %>%
+  mutate(own = as.factor(own))
+
+pooled <- within(pooled, own <- relevel(own, ref = 1))
+
+# pooled_clogit<-clogit(RES~sos+info+ own + strata(STR), data=pooled)
+# summary(pooled_clogit)
+
+pooled_clogit<-clogit(RES~sos+info+  own.fisher + own.industry  + own.gov + strata(STR), data=pooled)
+summary(pooled_clogit)
+
+```
+
+```{r}
+# make the graphs for actual preference weights
+
+sos_coef <- pooled_clogit$coefficients[1]
+info_coef <- pooled_clogit$coefficients[2]
+own_1_coef <- pooled_clogit$coefficients[3]
+own_2_coef <- pooled_clogit$coefficients[4]
+own_3_coef <- pooled_clogit$coefficients[5]
+
+pooled_clogit_coefs <- data.frame(names = names(pooled_clogit$coefficients), clogit_coef = pooled_clogit$coefficients)
+
+avg_own <- (own_1_coef + own_2_coef + own_3_coef)/4
+avg_info <- (info_coef)/2
+avg_sos <- sos_coef/2
+
+sos_actual <- pooled_clogit_coefs %>%
+  filter(names == "sos") %>%
+  mutate(actual = clogit_coef - avg_sos)
+
+sos0_actual <- data.frame(names = "sos0", 0, actual = -sum(sos_actual$actual)) %>%
+  rename("clogit_coef" = "X0")
+
+sos_actual_final <- rbind(sos_actual, sos0_actual)
+
+sos_actual_final <- rbind(sos_actual, sos0_actual)
+
+info_actual <- pooled_clogit_coefs %>%
+  filter(names == "info") %>%
+  mutate(actual = clogit_coef - avg_info)
+
+info0_actual <- data.frame(names = "info0", 0, actual = -sum(info_actual$actual)) %>%
+  rename("clogit_coef" = "X0")
+
+info_actual_final <- rbind(info_actual, info0_actual)
+
+own_actual <- pooled_clogit_coefs %>%
+  filter(str_detect(names, 'own') ) %>%
+  mutate(actual = clogit_coef - avg_own)
+
+own4_actual <- data.frame(names = "own.public",  0, actual =-sum(own_actual$actual)) %>%
+  rename("clogit_coef" = "X0")
+
+own_actual_final <- rbind(own_actual, own4_actual)
+
+all_actual <- rbind(sos_actual_final, info_actual_final, own_actual_final) %>% 
+  select(-clogit_coef)
+write.csv(all_actual, "output/pooled_clogit_actual_coefs.csv", row.names = FALSE)
+
+all_actual <- read_csv("output/pooled_clogit_actual_coefs.csv")
+
+positions <- c("sos", "sos0", "info", "info0", "own.fisher", "own.industry", "own.gov", "own.public")
+
+all_actual %>%
+  ggplot(aes(x= names, y= actual)) +
+  geom_col() + 
+  theme_bw() +
+  scale_x_discrete(limits = positions) +
+  scale_y_continuous(breaks = seq(-1.3, 1.3, 0.1)) %>%
+  labs(y = "Preference Weights")
+
+```
+
+Unforced Responses (Model III)
+```{r}
+unforced <- read_csv("int/unforced_data_fix.csv") %>%
+  left_join(master_survey, by = "survey_id") %>%
+  select(-noalt)
+
+unforced_clogit<-clogit(RES~sos+info+own.fisher+own.industry+own.gov+strata(STR), data=unforced)
+unforced_clogit
+```
+
+Forced Responses (Model IV)
+```{r}
+forced <- read_csv("int/forced_data_fix.csv") %>%
+  left_join(master_survey, by = "survey_id") %>%
+  select(-noalt)
+
+forced_clogit<-clogit(RES~sos+info+own.fisher+own.industry+own.gov+own.public+strata(STR), data=forced)
+forced_clogit
+```
+
+
+**Likelihood Ratio Test Taken from Penn et al.**
+```{r}
+#K = 5
+#M = 2
+
+pooled_log <- logLik(pooled_clogit) #-74.11078 (df=5)
+unforced_log <- logLik(unforced_clogit) #-42.90397 (df=5)
+forced_log <- logLik(forced_clogit) #-22.24721 (df=5)
+
+-2*(logLik(pooled_clogit) - (logLik(unforced_clogit) + logLik(forced_clogit)))
+-2*(pooled_log- (unforced_log + forced_log))
+
+-2*(74.11078 - (42.90397 + 22.24721)) #17.9192
+# if this then 17.9192 < 20.52 which means that we do not reject the null that there is no difference between the forced and unforced........... need to write this up formally
+
+```
+
+Methods Log Lik Test:
+We can test the effect of forced choice versus unforced choice using a likelihood ratio test for equality. The test statistic is:
+
+$$ -2*(LL_{r} - \sum LL{u}) $$
+Which is chi-squared distributed with K(M-1) degrees of freedom, where K is the number of restrictions (5), M is the number of treatments (2). The null hypothesis of the test is that the parameters are not significantly different between treatments. This means that if we do not reject the null, we can use the standard opt out method without worry of respondent bias. If the test statistic exceeds the critical value, found in the chi square table, then evidence suggests that the treatments sufficiently contribute to explaining the model and reject the null hypothesis of no difference between the forced and unforced datasets. 
+
+**Make pooled predictions using predict()**
+
+```{r}
+#predictions for pooled data
+
+library(AlgDesign)
+ffd <- gen.factorial(c(2,2,4), varNames = c("sos", "info", "own"), factors = "all") # construct a full factorial design which has two 2 level attributes and one 4 level attribute. factors = "all" indicates that all arguments are factors
+ffd 
+
+all_packages <- ffd %>%
+  mutate(STR = 1001) %>% 
+  mutate(sos = ifelse(sos==2,1,0), info=ifelse(info==2,0,1)) %>%
+  mutate(own.fisher=ifelse(own==1,1,0), own.industry=ifelse(own==2,1,0), own.gov=ifelse(own==3,1,0), own.public=ifelse(own==4,1,0)) 
+
+#pooled_predictions <- predict(pooled_clogit, newdata = pooled, type = "expected", se.fit = TRUE) #this gives relative probs within strata. 
+
+pooled_predictions <- predict(pooled_clogit, newdata = all_packages, type = "risk", se.fit = TRUE) #this gives absolute probabilities.
+
+
+pooled_predictions_data <- data.frame(all_packages, pooled_predictions) #%>%
+  #select(STR, package, info, sos, own, RES, fit)
+
+# sos	0 = no, 1 = yes
+# info 	1 = non, 0 = anon
+# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
+#adopt : 1 = accept, 0 = decline
+
+pooled_predictions_data_final <- pooled_predictions_data %>%
+  mutate(level_probs1 = fit/(fit+ 1),
+         level_se = se.fit/(se.fit + 1)) %>%
+  select(-fit, -se.fit, -STR) %>%
+  arrange(-level_probs1) %>%
+  select(info, own, sos, own.fisher, own.industry, own.gov, own.public, level_probs1, level_se) %>%
+  mutate(info = case_when(
+    info == 0 ~ "Anon",
+    info == 1 ~ "Non-Anon"
+  ),
+  own = case_when(
+   own == 1 ~ "Fishers",
+   own == 2 ~ "Industry",
+   own == 3 ~ "Government",
+   own == 4 ~ "Public Access"
+  ),
+  sos = case_when(
+    sos == 0 ~ "No",
+    sos == 1 ~ "Yes"
+  )) %>%
+  rename("Probability (%)" = "level_probs1",
+         "SE" = "level_se")
+
+write.csv(pooled_predictions_data_final, "output/pooled_probs.csv", row.names = FALSE)
+
+```
+
+
+
+**Make forced predictions data using predict()**
+```{r}
+#forced predictions 
+
+forced_predictions <- predict(forced_clogit, newdata = all_packages, type = "risk", se.fit = TRUE)
+
+forced_predictions_data <- data.frame(all_packages, forced_predictions)  
+
+# sos	0 = no, 1 = yes
+# info 	1 = non, 0 = anon
+# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
+#adopt : 1 = accept, 0 = decline
+
+forced_predictions_data_final <- forced_predictions_data %>%
+  mutate(level_probs1 = fit/(fit+ 1),
+         level_se = se.fit/(se.fit + 1)) %>%
+  select(-fit, -se.fit, -STR) %>%
+  arrange(-level_probs1) %>%
+  select(info, own, sos, level_probs1, level_se) %>%
+  mutate(info = case_when(
+    info == 0 ~ "Anon",
+    info == 1 ~ "Non-Anon"
+  ), 
+  own = case_when(
+   own == 1 ~ "Fishers",
+   own == 2 ~ "Industry", 
+   own == 3 ~ "Government", 
+   own == 4 ~ "Public Access"
+  ),
+  sos = case_when(
+    sos == 0 ~ "No",
+    sos == 1 ~ "Yes"
+  ))  %>%
+  rename("Probability (%)" = "level_probs1",
+         "SE" = "level_se")
+
+
+write.csv(forced_predictions_data_final, "output/forced_probs.csv", row.names = FALSE)
+
+DT::datatable(forced_predictions_data)
+```
+
+**Make unforced prediction using predict()**
+```{r}
+#unforced predictions 
+
+unforced_predictions <- predict(unforced_clogit, newdata = all_packages, type = "risk", se.fit = TRUE)
+
+unforced_predictions_data <- data.frame(all_packages, unforced_predictions)  
+
+# sos	0 = no, 1 = yes
+# info 	1 = non, 0 = anon
+# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
+#adopt : 1 = accept, 0 = decline
+
+unforced_predictions_data_final <- unforced_predictions_data %>%
+  mutate(level_probs1 = fit/(fit+ 1),
+         level_se = se.fit/(se.fit + 1)) %>%
+  select(-fit, -se.fit, -STR) %>%
+  arrange(-level_probs1) %>%
+  select(info, own, sos, level_probs1, level_se) %>%
+  mutate(info = case_when(
+    info == 0 ~ "Anon",
+    info == 1 ~ "Non-Anon"
+  ), 
+  own = case_when(
+   own == 1 ~ "Fishers",
+   own == 2 ~ "Industry", 
+   own == 3 ~ "Government", 
+   own == 4 ~ "Public Access"
+  ),
+  sos = case_when(
+    sos == 0 ~ "No",
+    sos == 1 ~ "Yes"
+  )) %>%
+  rename("Probability (%)" = "level_probs1",
+         "SE" = "level_se")
+
+
+write.csv(unforced_predictions_data_final, "output/unforced_probs.csv", row.names = FALSE)
+
+DT::datatable(unforced_predictions_data)
+
+```
+
+**Make standard predictions using predict()**
+```{r}
+standard_predictions <- predict(standard_clogit, newdata = standard_opt_out, type = "risk", se.fit = TRUE)
+
+standard_predictions_data <- data.frame(standard_opt_out, standard_predictions) %>%
+  select(STR, package, info, sos, own, RES, fit, se.fit)
+
+#reasoning for predicting out a clogit model:
+#https://markmail.org/search/?q=list%3Aorg.r-project.r-help+predict+clogit#query:list%3Aorg.r-project.r-help%20predict%20clogit%20from%3A%22Therneau%2C%20Terry%20M.%2C%20Ph.D.%22+page:1+mid:tsbl3cbnxywkafv6+state:results
+#https://stackoverflow.com/questions/35329585/how-to-get-fitted-values-from-clogit-model
+
+# sos	0 = no, 1 = yes
+# info 	1= non, 0 = anon
+# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
+#adopt : 1 = accept, 0 = decline
+
+standard_predictions_data_final <- standard_predictions_data %>%
+  mutate(`Probability (%)` = round(fit/(fit+ 1),4)*100,
+         level_se = se.fit/(se.fit + 1)) %>%
+  select(-fit, -se.fit, -STR) %>%
+  arrange(-`Probability (%)`) %>%
+  select(package, info, own, sos, `Probability (%)`, level_se) %>%
+  group_by(package, info, own, sos) %>%
+  summarise(`Probability (%)` = mean(`Probability (%)`), level_se = mean(level_se))  %>%
+  ungroup() %>%
+  mutate(info = case_when(
+    info == 0 ~ "Anon",
+    info == 1 ~ "Non-Anon"
+  ),
+  own = case_when(
+   own == 1 ~ "Fishers",
+   own == 2 ~ "Industry",
+   own == 3 ~ "Government",
+   own == 4 ~ "Public Access"
+  ),
+  sos = case_when(
+    sos == 0 ~ "No",
+    sos == 1 ~ "Yes"
+  )) %>%
+  arrange(-`Probability (%)`) %>%
+  rename("SE" = "level_se")
+
+
+write.csv(standard_predictions_data_final, "output/standard_probs.csv", row.names = FALSE)
+
+DT::datatable(standard_predictions_data)
+```
+
