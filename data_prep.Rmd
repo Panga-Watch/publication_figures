@@ -41,9 +41,9 @@ library(DT)
 
 ```{r}
 # Read in all of the raw data
-master_surv_resp <- read_csv("raw/master_survey_resp.csv")
-version_to_package <- read_csv("raw/version_to_package.csv")
-packages <- read_csv("raw/packages.csv")
+master_surv_resp <- read_csv("master_survey_resp.csv")
+version_to_package <- read_csv("version_to_package.csv")
+packages <- read_csv("packages.csv")
 ```
 
 ```{r}
@@ -109,10 +109,11 @@ pooled_data_final <- pooled_data_final %>%
 
 DT::datatable(pooled_data_final)
 
-write.csv(pooled_data_final, "int/pooled_data_fix.csv", row.names = FALSE)
+#write.csv(pooled_data_final, "int/pooled_data_fix.csv", row.names = FALSE)
 
 
-pooled_data_final <- read_csv("int/pooled_data_fix.csv")
+#pooled_data_final <- read_csv("int/pooled_data_fix.csv")
+
 ```
 
 
