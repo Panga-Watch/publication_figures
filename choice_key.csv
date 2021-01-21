@@ -1,0 +1,183 @@
+Question,type,name,label 
+0.i.,select_one,d,Data Collection
+,,t,Training
+0.ii.,numeric,1xxx,"Raja Ampat, Indonesia"
+,,2xxx,"Muncar (Survey Site Bali), Indonesia"
+,,3xxx,"Muara Angke, Indonesia"
+,,4xxx,"Muncar, Indonesia"
+,,5xxx,"Puerto San Carlos, Mexico"
+,,6xxx,"Altata, Mexico"
+,,7xxx,"Wakatobi, Indonesia"
+0.iii.,select_one,1,1
+,,2,2
+,,3,3
+,,4,4
+,,5,5
+,,6,6
+,,7,7
+,,8,8
+,,9,9
+,,10,10
+,,11,11
+,,12,12
+,,13,13
+,,14,14
+,,15,15
+,,16,16
+0.iv.,text,,Initials
+0.v.,text,,
+1.,select_one,IND,Indonesia
+,,MEX,Mexico
+2.,select_one,RAJ,Raja Ampat
+,,MAK,Muara Angke
+,,MNC,Muncar
+,,PSC,Puerto San Carlos
+,,ALT,Altata
+,,TTN,T
+3.,select_one,m,Male
+,,f,Female
+4.,select_multiple,1,true
+,,0,false
+4.x.,text,,
+5.,select_one,own,Own
+,,share_employee,Share with others as part of a collective
+,,share_collective,Share with others as an employee
+,,rent,Rent from others
+,,none,Do not use a boat to fish
+6.i.,numeric,,
+6.ii.,select_one,w,Wood
+,,fg,Fiberglass
+6.iii.,select_one,y,Yes
+,,n,No
+6.iv.,select_one,y,Yes
+,,n,No
+6.x.,text,,"*Write in response for ""other"""
+7.,select_multiple,1,true
+,,0,false
+7.x.,text,,"*Write in response for ""other"""
+8.,select_multiple,1,true
+,,0,false
+8.x.,text,,"*Write in response for ""other"""
+9.,text,,
+10.i.,text,,
+10.ii.,text,,
+11.i.,text,,
+11.ii.,text,,
+12.,select_one,1,Package 1.
+,,2,Package 2.
+13.,select_one,0,No Package
+,,1,Package Chosen
+14.i.,select_one,y,Yes
+,,n,No
+14.ii.,select_one,y,Yes
+,,n,No
+14.iii.,select_one,y,Yes
+,,n,No
+14.iv.,select_one,y,Yes
+,,n,No
+15.i.,select_one,y,Yes
+,,n,No
+15.ii.,select_one,y,Yes
+,,n,No
+15.iii.,select_one,y,Yes
+,,n,No
+15.iv.,select_one,y,Yes
+,,n,No
+16.,text,,
+17.,text,,
+18.,select_multiple,1,true
+,,0,false
+19.,text,,
+20.i.,text,,
+20.ii.,text,,
+20.ii.,text,,
+21.i.,integer,"0,100,5","Range: 0% to 100%, Interval: 5%"
+21.ii.,integer,"0,100,5","Range: 0% to 100%, Interval: 5%"
+21.iii.,integer,"0,100,5","Range: 0% to 100%, Interval: 5%"
+21.iv.,integer,"0,100,5","Range: 0% to 100%, Interval: 5%"
+21.v.,integer,"0,100,5","Range: 0% to 100%, Interval: 5%"
+21.x.,text,,
+22.,select_one,y,Yes
+,,n,No
+23.,select_one,cooperative,Cooperative
+,,union,Union
+,,customary_org,Customary Organization (e.g. indigenous community)
+,,other,Other
+23.x.,text,,"*Write in response for ""other"""
+24.,select_one,apprentice,Apprentice
+,,partner,Partner
+,,director,Director
+,,other,Other
+24.x.,text,,"*Write in response for ""other"""
+25.,numeric,,
+26.,select_one,community,Members of your fishing organization/ community only
+,,neighboring_community,Members from you and neighboring fishing organization/ communities
+,,permit_holders,Anyone with a fishing permit
+,,no_restrictions,There are no restrictions to access
+,,other,Other
+26.x.,text,,"*Write in response for ""other"""
+27.,select_multiple,1,true
+27.,,0,false
+27.x.,text,,"*Write in response for ""other"""
+28.,select_multiple,1,true
+,,0,false
+28.x.,text,,"*Write in response for ""other"""
+29.,select_one,once_week,Every week
+,,once_month,Once a month
+,,few_year,A few times per year
+,,once_year,Once a year
+,,never,Never
+,,other,Other
+29.x.,text,,"*Write in response for ""other"""
+30.,select_one,none,No Punishment 
+,,weak,Weak
+,,moderate,Moderate
+,,strong,Strong
+,,severe,Severe
+31.,select_one,y,Yes
+,,n,No
+32.i.,text,,
+32.ii.,text,,
+32.iii.,text,,
+33.i.,text,,
+33.ii.,text,,
+33.iii.,text,,
+34.i.,select_one,iuu,Illegal fishing
+34.ii.,,pollution,Marine trash and pollution
+34..iii.,,weather,Extreme weather events
+34.iv.,,corruption,Corruption of fishing authorities
+35.,select_one,improve_high,Improved a lot
+,,improve_low,Improved a little 
+,,no_change,Stayed the same
+,,decline_low,Declined a little
+,,decline_high,Declined a lot
+36,select_one,1,Strongly Disagree
+,,2,Disagree
+,,3,Neutral
+,,4,Agree
+,,5,Strongly Agree
+37,select_one,1,Distrust Entirely
+,,2,Distrust
+,,3,Neutral
+,,4,Trust
+,,5,Trust Entirely
+38,select_one,1,Extremely Unsatisfied
+,,2,Unsatisfied
+,,3,Neutral
+,,4,Satisfied
+,,5,Extremely Satisfied
+,,0,n/a
+39.,integer,,
+40.,integer,,
+41.,select_one,no_formal,No Formal Education
+,,primary,Primary School
+,,secondary,Secondary School / High School
+,,vocational,Vocational Training/ Trade School
+,,university,College/ University
+,,other,Other
+41.x.,text,,"*Write in response for ""other"""
+42.,numeric,,
+43.,numeric,"0,100,5","Range: 0% to 100%, Interval: 5%"
+44.,numeric,"0,100,5","Range: 0% to 100%, Interval: 5%"
+Photo ,image,,
+Last Comment,text,,

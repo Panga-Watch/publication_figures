@@ -1,0 +1,132 @@
+name,label
+data,Data Collection
+training,Training
+1,1
+2,2
+3,3
+4,4
+5,5
+6,6
+7,7
+8,8
+9,9
+10,10
+11,11
+12,12
+13,13
+14,14
+15,15
+16,16
+indonesia,a. Indonesia
+mexico,b. Mexico
+male,a. Male
+female,b. Female
+hand_line,a. Hand Line
+spear,b. Spear
+traps,c. Traps
+gill_net,d. Gill Net
+mobile_net,"e. Mobile Net (e.g., trawl, purse seine, beach seine)"
+stationary_line,f. Stationary Line (e.g. long line)
+other_gear,g. Other
+own,a. Own
+share_collective,b. Share with others as part of a collective
+share_employee,c. Share with others as an employee
+rent,d. Rent from others
+no_boat,e. Do not use a boat to fish
+yes,a. Yes
+no,b. No
+smartphone,a. Smartphone with internet connection
+maps,b. Google Maps or other GPS apps
+socialmedia,"c. Twitter, Facebook, Instagram, or other social media"
+other_tech,d. Other (please specify below)
+no_tech,e. None
+vhf,a. VHF radio
+fishfinder,b. Fish Finder
+survcam,c. Surveillance camera
+catchapp,d. Catch and data collection app
+vesseltrack,e. Vessel tracking technology
+gps,f. GPS
+other_fish_tech,g. Other (please specify below)
+no_fish_tech,h. None
+1,a. Package 1
+2,b. Package 2
+package_chosen,a. Package you chose
+no_package,b. No package
+vms_design_a,a. Data to help obtain a sustainable seafood certification
+vms_design_b,b. Onboard internet access
+vms_design_c,c. Onboard electrical power for charging cell phones and other electronics
+vms_design_d,d. Text messaging services
+vms_design_e,"e. Detailed tracking information for your vessel (e.g., drop pin in specific location)"
+vms_design_f,f. Opportunities to acquire new tools and technical capacity (e.g. workshops for computer use)
+vms_design_g,"g. Reduce illegal, unreported, and unregulated fishing in your fishing area"
+vms_design_h,h. Increase in the monitoring capacity of the fishing association
+vms_design_i,"i. Full data reports to show compliance with fishing authorities (e.g. monthly reports with fishing activity information, paired with catch data)"
+cooperative,a. Cooperative
+union,b. Union
+customary_orga,c. Customary Organization (e.g. indigenous community)
+other_fishing_org,d. Other
+apprentice,a. Apprentice
+partner,b. Partner
+director,c. Director
+other_fishing_org_role,d. Other
+community_memb,a. Members of your fishing organization/ community only
+neighbor,b. Members from you and neighboring fishing organization/ communities
+permit,c. Anyone with a fishing permit
+no_restrictions,d. There are no restrictions to access
+other_access_target_species,e. Other
+restriction_gear,a. Gear Restrictions
+restriction_size,b. Size Restrictions
+restriction_season,c. Seasonal Restrictions
+restriction_spacial,d. Spatial Restrictions
+restriction_quota,e. Quotas
+other_restriction,f. Other
+restriction_none,g. None
+enforcement_community_members,a. Community Members
+enforcement_village_leader,b. Village customary leader
+enforcement_village_gov,c. Village Government
+enforcement_provincial_gov,d. Provincial Government
+enforcement_national_gov,e. National Government
+enforcement_none,f. No Enforcement
+other_enforcement,g. Other
+every_week,a. Every week
+once_month,b. Once a month
+few_year,c. A few times per year
+once_year,d. Once a year
+never,e. Never
+other_enforcement_interval,f. Other
+none,a. No Punishment
+weak,b. Weak
+moderate,c. Moderate
+strong,d. Strong
+severe,e. Severe
+trash_pollutin,a. Trash polluting the ocean
+iuu,b. Illegal Fishing
+weather,c. Extreme Weather
+corruption,d. Corruption of fishing authorities
+decline_high,a. Declined a lot
+decline_low,b. Declined slightly
+no_change,c. Stayed the same
+improve_low,d. Improved slightly
+improve_high,e. Improved a lot
+agree_str,Strongly Agree
+agree,Agree
+neutral,Neutral
+disagree,Disagree
+disagree_str,Strongly Disagree
+trust_entirely,Trust Entirely
+trust_sw,Somewhat Trust
+neutral,Neutral
+distrust_sw,Somewhat Distrust
+distrust_entirely,Distrust Entirely
+satisfied_ext,Extremely Satisfied
+satisfied,Satisfied
+neutral,Neutral
+unsatisfied,Unsatisfied
+unsatisfied_ext,Extremely Unsatisfied
+n_a,N / A
+edu_no_formal,a. No Formal Education
+edu_primary,b. Primary School
+edu_secondary,c. Secondary School / High School
+edu_vocational,d. Vocational Training/ Trade School
+edu_uni,e. College/ University
+other_edu,f. Other
