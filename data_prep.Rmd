@@ -326,7 +326,7 @@ write.csv(forced_data_final, "int/forced_data_fix.csv", row.names = FALSE)
 forced_data_final <- read_csv("int/forced_data_fix.csv")
 ```
 
-#removing columns that are not used for analysis
+# Removing columns that are not used for analysis
 ```{r}
 ms_factor<-read.csv("master_survey_resp.csv", stringsAsFactors = TRUE)
 

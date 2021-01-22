@@ -35,21 +35,25 @@ comma separated values
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyverse)
-library(survival)
-library(AlgDesign)
-library(DT)
+library(survival) # for clogit
 library(stargazer)
+library(coefplot)
+
+# might use these
 library(xtable)
 library(here)
 library(kableExtra)
 
 master_survey <- read.csv("master_survey_resp.csv", stringsAsFactors = TRUE) %>%
   select(-start, -end, -survey_type, -interviewer, -comment, -text_vms_adoption, -fishery_problem_one, -fishery_problem_two, -fishery_problem_three, -fishery_solution_one, -fishery_solution_two, -fishery_solution_three, -photo)
+
 ```
 
 ## Standard opt-out model (Model I)
 ```{r}
+
 standard_opt_out <- read_csv("int/standard_opt_out_fix.csv") %>%
   left_join(master_survey, by = "survey_id") %>%
   select(-noalt)
@@ -57,12 +61,12 @@ standard_opt_out <- read_csv("int/standard_opt_out_fix.csv") %>%
 standard_clogit <- clogit(RES~ASC+sos+info+own.fisher+own.industry+own.gov + strata(survey_version), data=standard_opt_out) # run the clogit. ASC represents the alternative specific constant, or the opt out option.
 summary(standard_clogit)
 
-
 ```
 
 
 ## Pooled (Model II)
 ```{r}
+
 pooled <- read_csv("int/pooled_data_fix.csv") %>%
   left_join(master_survey, by = "survey_id") %>%
   select(-noalt) %>%
@@ -76,9 +80,13 @@ pooled <- within(pooled, own <- relevel(own, ref = 1))
 pooled_clogit<-clogit(RES~sos+info+  own.fisher + own.industry  + own.gov + strata(STR), data=pooled)
 summary(pooled_clogit)
 
+# This is used as "model 1" in our paper to showcase conditional logit results
+
 ```
 
+
 ```{r}
+
 # make the graphs for actual preference weights
 
 sos_coef <- pooled_clogit$coefficients[1]
@@ -124,9 +132,11 @@ own_actual_final <- rbind(own_actual, own4_actual)
 
 all_actual <- rbind(sos_actual_final, info_actual_final, own_actual_final) %>% 
   select(-clogit_coef)
-write.csv(all_actual, "output/pooled_clogit_actual_coefs.csv", row.names = FALSE)
+# write.csv(all_actual, "output/pooled_clogit_actual_coefs.csv", row.names = FALSE)
 
-all_actual <- read_csv("output/pooled_clogit_actual_coefs.csv")
+# all_actual <- read_csv("output/pooled_clogit_actual_coefs.csv")
+
+# previous two lines commented out b/c I do not have a output folder to write it to, this is a remnant from Gage's work
 
 positions <- c("sos", "sos0", "info", "info0", "own.fisher", "own.industry", "own.gov", "own.public")
 
@@ -140,8 +150,9 @@ all_actual %>%
 
 ```
 
-Unforced Responses (Model III)
+##Unforced Responses (Model III)
 ```{r}
+
 unforced <- read_csv("int/unforced_data_fix.csv") %>%
   left_join(master_survey, by = "survey_id") %>%
   select(-noalt)
@@ -150,8 +161,9 @@ unforced_clogit<-clogit(RES~sos+info+own.fisher+own.industry+own.gov+strata(STR)
 unforced_clogit
 ```
 
-Forced Responses (Model IV)
+##Forced Responses (Model IV)
 ```{r}
+
 forced <- read_csv("int/forced_data_fix.csv") %>%
   left_join(master_survey, by = "survey_id") %>%
   select(-noalt)
@@ -183,3 +195,18 @@ We can test the effect of forced choice versus unforced choice using a likelihoo
 
 $$ -2*(LL_{r} - \sum LL{u}) $$
 Which is chi-squared distributed with K(M-1) degrees of freedom, where K is the number of restrictions (5), M is the number of treatments (2). The null hypothesis of the test is that the parameters are not significantly different between treatments. This means that if we do not reject the null, we can use the standard opt out method without worry of respondent bias. If the test statistic exceeds the critical value, found in the chi square table, then evidence suggests that the treatments sufficiently contribute to explaining the model and reject the null hypothesis of no difference between the forced and unforced datasets. 
+
+
+## Stargazer table and coefficient plot of pooled model
+```{r, results = 'asis'}
+
+# Table
+final_table <- stargazer(pooled_clogit, type = "html")
+
+# Plot
+final_plot <- coefplot(pooled_clogit, color = "black") +
+  scale_y_discrete(name="Feature",labels=c("SOS Feature","Non-Private Information","Fishery Owned Data","Industry Owned Data","Government Owned Data")) +
+  theme_classic()
+final_plot
+
+```
