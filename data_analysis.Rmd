@@ -80,7 +80,7 @@ pooled <- within(pooled, own <- relevel(own, ref = 1))
 pooled_clogit<-clogit(RES~sos+info+  own.fisher + own.industry  + own.gov + strata(STR), data=pooled)
 summary(pooled_clogit)
 
-# This is used as "model 1" in our paper to showcase conditional logit results
+# This is used as "model 1" in our paper to showcase conditional logit results 
 
 ```
 
@@ -210,3 +210,78 @@ final_plot <- coefplot(pooled_clogit, color = "black") +
 final_plot
 
 ```
+
+
+## Make pooled predictions using predict()
+reasoning for predicting out a clogit model:
+
+https://markmail.org/search/?q=list%3Aorg.r-project.r-help+predict+clogit#query:list%3Aorg.r-project.r-help%20predict%20clogit%20from%3A%22Therneau%2C%20Terry%20M.%2C%20Ph.D.%22+page:1+mid:tsbl3cbnxywkafv6+state:results
+
+https://stackoverflow.com/questions/35329585/how-to-get-fitted-values-from-clogit-model
+
+```{r}
+#predictions for pooled data
+
+library(AlgDesign)
+ffd <- gen.factorial(c(2,2,4), varNames = c("sos", "info", "own"), factors = "all") # construct a full factorial design which has two 2 level attributes and one 4 level attribute. factors = "all" indicates that all arguments are factors
+ffd 
+
+all_packages <- ffd %>%
+  mutate(STR = 1001) %>% 
+  mutate(sos = ifelse(sos==2,1,0), info=ifelse(info==2,0,1)) %>%
+  mutate(own.fisher=ifelse(own==1,1,0), own.industry=ifelse(own==2,1,0), own.gov=ifelse(own==3,1,0), own.public=ifelse(own==4,1,0)) 
+
+#pooled_predictions <- predict(pooled_clogit, newdata = pooled, type = "expected", se.fit = TRUE) #this gives relative probs within strata. 
+
+pooled_predictions <- predict(pooled_clogit, newdata = all_packages, type = "risk", se.fit = TRUE) #this gives absolute probabilities.
+
+
+pooled_predictions_data <- data.frame(all_packages, pooled_predictions) #%>%
+  #select(STR, package, info, sos, own, RES, fit)
+
+# sos	0 = no, 1 = yes
+# info 	1 = non, 0 = anon
+# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
+#adopt : 1 = accept, 0 = decline
+
+pooled_predictions_data_final <- pooled_predictions_data %>%
+  mutate(level_probs1 = fit/(fit+ 1),
+         level_se = se.fit/(se.fit + 1)) %>%
+  select(-fit, -se.fit, -STR) %>%
+  arrange(-level_probs1) %>%
+  select(info, own, sos, own.fisher, own.industry, own.gov, own.public, level_probs1, level_se) %>%
+  mutate(info = case_when(
+    info == 0 ~ "Anon",
+    info == 1 ~ "Non-Anon"
+  ),
+  own = case_when(
+   own == 1 ~ "Fishers",
+   own == 2 ~ "Industry",
+   own == 3 ~ "Government",
+   own == 4 ~ "Public Access"
+  ),
+  sos = case_when(
+    sos == 0 ~ "No",
+    sos == 1 ~ "Yes"
+  )) %>%
+  rename("Probability (%)" = "level_probs1",
+         "SE" = "level_se")
+
+pooled_predictions_data_final
+
+```
+
+```{r}
+
+# Table of pooled model predition results
+
+table_predictions <- pooled_predictions_data_final %>% 
+  select(-own.fisher, -own.industry, -own.gov, -own.public)
+
+probability_table <- kable(table_predictions, col.names = c("Information","Ownership","Safety","Probability (%)", "SE")) %>% 
+  kable_styling(full_width = F)
+probability_table
+
+
+```
+
