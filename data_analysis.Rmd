@@ -205,7 +205,7 @@ final_table <- stargazer(pooled_clogit, type = "html")
 
 # Plot
 final_plot <- coefplot(pooled_clogit, color = "black") +
-  scale_y_discrete(name="Feature",labels=c("SOS Feature","Non-Private Information","Fishery Owned Data","Industry Owned Data","Government Owned Data")) +
+  scale_y_discrete(name="Feature",labels=c("SOS Feature","Non-Private Information","Fisher Owned Data","Industry Owned Data","Government Owned Data")) +
   theme_classic()
 final_plot
 
