@@ -264,7 +264,7 @@ pooled_predictions_data_final <- pooled_predictions_data %>%
     sos == 0 ~ "No",
     sos == 1 ~ "Yes"
   )) %>%
-  rename("Probability (%)" = "level_probs1",
+  rename("Probability" = "level_probs1",
          "SE" = "level_se")
 
 pooled_predictions_data_final
@@ -276,10 +276,13 @@ pooled_predictions_data_final
 # Table of pooled model predition results
 
 table_predictions <- pooled_predictions_data_final %>% 
-  select(-own.fisher, -own.industry, -own.gov, -own.public)
+  mutate(probability_pct = Probability*100) %>% # add new column that transforms probability to percentage
+  select(info, own, sos, probability_pct, SE) %>% # rearrange column order and drop other columns
+  mutate_if((is.numeric), round, 2) # round all numeric columns to 2 digits
+
 
 probability_table <- kable(table_predictions, col.names = c("Information","Ownership","Safety","Probability (%)", "SE")) %>% 
-  kable_styling(full_width = F)
+  kable_styling(full_width = F, position = "center")
 probability_table
 
 
