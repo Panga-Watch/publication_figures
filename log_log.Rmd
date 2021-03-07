@@ -1,10 +1,11 @@
 ---
 title: "R Notebook"
 output:
-  word_document: default
   html_document:
     df_print: paged
-editor_options: 
+  pdf_document: default
+  word_document: default
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -23,21 +24,21 @@ library(kableExtra)
 library(ggalt)
 library(WDI)
 library(foreign)
-library(GGally)
+#library(GGally) Not using this - Corinna H.
 library(survival)
-library(Metrics)
+#library(Metrics) Not using this - Corinna H.
 library(cowplot)
-library(reshape)
+#library(reshape) Not using this- Corinna H.
 library(RColorBrewer)
 ```
 
 # BLR including WTP
 ```{r}
 #data formatting 
-choice <- read.csv("raw/version_to_package.csv", stringsAsFactors = TRUE) %>% 
+choice <- read.csv("version_to_package.csv", stringsAsFactors = TRUE) %>% 
   dplyr::rename(survey_version = 1)
 
-packages <- read.csv("raw/packages.csv", stringsAsFactors = TRUE)  %>% 
+packages <- read.csv("packages.csv", stringsAsFactors = TRUE)  %>% 
   dplyr::rename(package = 1)
 
 choice_package <- choice %>% 
@@ -45,7 +46,7 @@ choice_package <- choice %>%
   mutate(choice = ifelse(package <= 16,1,2))
 
 
-survey <- read.csv("raw/master_survey_resp.csv", stringsAsFactors = TRUE) %>% 
+survey <- read.csv("master_survey_resp.csv", stringsAsFactors = TRUE) %>% 
   select(survey_id, survey_version, country, choice, package_nopackage, starts_with("wtp"), starts_with("wtr"))
 
 pack_yes <- survey %>% 
@@ -367,8 +368,8 @@ library(RCurl)
  
 # import the function from repository
 url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
-eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
-     envir=.GlobalEnv)
+# eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     # envir=.GlobalEnv) Not using this - Corinna H.
 ```
 
 Prep data for interval regression
@@ -556,7 +557,8 @@ int_predictions %>%
 
 ```
 
-```{r}
+```{r, eval = FALSE}
+# Taken out to be able to knit while making a stargazer table
 library(huxtable)
 
 #What percentage of our predictions fall within the reveal wtp range?
@@ -584,7 +586,8 @@ hux(table)
 
 Split data in half and parameterize the model:
 
-```{r}
+```{r, eval = FALSE}
+# Taken out to be able to knit while making stargazer table, 
 bind_interval_final_train_half <- bind_interval_final %>%
   head(., 94)
 
@@ -757,7 +760,8 @@ hux(table3)
 
 
 Everything below here still tweaking with:
-```{r}
+Corinna changed all to eval = false
+```{r, eval = FALSE}
 #intervals = with(bind_interval_final, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final)), type = "interval"))
 
 
@@ -826,7 +830,7 @@ LOOCV_function(bind_interval_final, "e")
 
 
 Do LOOCV with log log model (not possible to calculate rmse with interval regression?):
-```{r}
+```{r, eval = FALSE}
 wtp_lm_15 <- lm(log(wtp + 1 - min(wtp)) ~ sos + info + own  + fishtech + rank_one + education, data = bind_log_final) 
 
 score_log = list()
@@ -895,4 +899,16 @@ models_log = list()
 ```
 
 
+Stargazer table of interval regression models we tested
+```{r stargazer, results = 'asis'}
+
+library(stargazer)
+
+# a. Prepare a nice regression table:
+
+lm_table <- stargazer(int, int_1, int_2, int_3, int_4, int_5, int_6, int_7, int_8, int_9, int_10, int_11, int_12, int_13, int_15, int_16, type = "html")
+
+# Note: If you want to work with this in Word, save to html, open, copy and paste into Word. 
+
+```
 
