@@ -1646,29 +1646,29 @@ models_log = list()
 <pre><code>##  R package version 5.2.2. https://CRAN.R-project.org/package=stargazer</code></pre>
 <pre class="r"><code># a. Prepare a nice regression table:
 
-lm_table &lt;- stargazer(int, int_1, int_2, int_3, int_4, int_5, int_6, int_7, int_8, int_9, int_10, int_11, int_12, int_13, int_15, int_16, type = &quot;html&quot;)</code></pre>
+lm_table &lt;- stargazer(int_tech, int, int_1, int_2, int_3, int_4, int_5, int_6, int_7, int_8, int_9, int_10, int_11, int_12, int_13, int_15, int_16, type = &quot;html&quot;)</code></pre>
 <table style="text-align:center">
 <tr>
-<td colspan="17" style="border-bottom: 1px solid black">
+<td colspan="18" style="border-bottom: 1px solid black">
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
-<td colspan="16">
+<td colspan="17">
 <em>Dependent variable:</em>
 </td>
 </tr>
 <tr>
 <td>
 </td>
-<td colspan="16" style="border-bottom: 1px solid black">
+<td colspan="17" style="border-bottom: 1px solid black">
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 </td>
-<td colspan="16">
+<td colspan="17">
 intervals
 </td>
 </tr>
@@ -1723,14 +1723,20 @@ intervals
 <td>
 (16)
 </td>
+<td>
+(17)
+</td>
 </tr>
 <tr>
-<td colspan="17" style="border-bottom: 1px solid black">
+<td colspan="18" style="border-bottom: 1px solid black">
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 sos
+</td>
+<td>
+1.605<sup>***</sup>
 </td>
 <td>
 1.373<sup>**</sup>
@@ -1783,6 +1789,9 @@ sos
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.580)
 </td>
 <td>
 (0.586)
@@ -1868,10 +1877,15 @@ sos
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 info
+</td>
+<td>
+-0.435
 </td>
 <td>
 -0.441
@@ -1924,6 +1938,9 @@ info
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.448)
 </td>
 <td>
 (0.442)
@@ -2009,10 +2026,15 @@ info
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 own1
+</td>
+<td>
+0.437
 </td>
 <td>
 0.452
@@ -2065,6 +2087,9 @@ own1
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.599)
 </td>
 <td>
 (0.590)
@@ -2150,10 +2175,15 @@ own1
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 own2
+</td>
+<td>
+0.371
 </td>
 <td>
 0.573
@@ -2206,6 +2236,9 @@ own2
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.752)
 </td>
 <td>
 (0.748)
@@ -2291,10 +2324,15 @@ own2
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 own3
+</td>
+<td>
+-0.568
 </td>
 <td>
 -0.465
@@ -2347,6 +2385,9 @@ own3
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.611)
 </td>
 <td>
 (0.604)
@@ -2432,10 +2473,14 @@ own3
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 educationformal
+</td>
+<td>
 </td>
 <td>
 1.444
@@ -2482,6 +2527,8 @@ educationformal
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 (1.186)
@@ -2561,10 +2608,14 @@ educationformal
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 educationhigher
+</td>
+<td>
 </td>
 <td>
 2.835<sup>**</sup>
@@ -2611,6 +2662,8 @@ educationhigher
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 (1.410)
@@ -2690,10 +2743,14 @@ educationhigher
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 gdp_prop
+</td>
+<td>
 </td>
 <td>
 0.291
@@ -2739,6 +2796,8 @@ gdp_prop
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 (0.205)
@@ -2817,10 +2876,14 @@ gdp_prop
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 years_fishing
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -2860,6 +2923,8 @@ years_fishing
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -2932,10 +2997,14 @@ years_fishing
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 boat_length_m
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -2974,6 +3043,8 @@ boat_length_m
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3045,10 +3116,14 @@ boat_length_m
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 fishtech
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3098,6 +3173,8 @@ fishtech
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3180,10 +3257,14 @@ fishtech
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 boat_own
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3221,6 +3302,8 @@ boat_own
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3291,10 +3374,14 @@ boat_own
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 fishing_organizationy
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3333,6 +3420,8 @@ fishing_organizationy
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3404,10 +3493,14 @@ fishing_organizationy
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 income_fishing
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3445,6 +3538,8 @@ income_fishing
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3515,10 +3610,14 @@ income_fishing
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 rank_oneiuu
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3559,6 +3658,8 @@ rank_oneiuu
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3632,10 +3733,14 @@ rank_oneiuu
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 rank_onepollution
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3676,6 +3781,8 @@ rank_onepollution
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3749,10 +3856,14 @@ rank_onepollution
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 rank_oneweather
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3793,6 +3904,8 @@ rank_oneweather
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
 </td>
 <td>
 </td>
@@ -3866,10 +3979,15 @@ rank_oneweather
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
 <td style="text-align:left">
 Constant
+</td>
+<td>
+2.677<sup>***</sup>
 </td>
 <td>
 1.054
@@ -3922,6 +4040,9 @@ Constant
 </tr>
 <tr>
 <td style="text-align:left">
+</td>
+<td>
+(0.710)
 </td>
 <td>
 (1.289)
@@ -4007,14 +4128,19 @@ Constant
 </td>
 <td>
 </td>
+<td>
+</td>
 </tr>
 <tr>
-<td colspan="17" style="border-bottom: 1px solid black">
+<td colspan="18" style="border-bottom: 1px solid black">
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 Log Likelihood
+</td>
+<td>
+-345.686
 </td>
 <td>
 -342.464
@@ -4070,6 +4196,9 @@ Log Likelihood
 chi<sup>2</sup>
 </td>
 <td>
+9.901<sup>*</sup> (df = 5)
+</td>
+<td>
 16.344<sup>**</sup> (df = 8)
 </td>
 <td>
@@ -4119,14 +4248,14 @@ chi<sup>2</sup>
 </td>
 </tr>
 <tr>
-<td colspan="17" style="border-bottom: 1px solid black">
+<td colspan="18" style="border-bottom: 1px solid black">
 </td>
 </tr>
 <tr>
 <td style="text-align:left">
 <em>Note:</em>
 </td>
-<td colspan="16" style="text-align:right">
+<td colspan="17" style="text-align:right">
 <sup><em></sup>p&lt;0.1; <sup><strong></sup>p&lt;0.05; <sup></strong></em></sup>p&lt;0.01
 </td>
 </tr>
