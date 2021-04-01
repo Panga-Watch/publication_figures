@@ -63,6 +63,23 @@ summary(standard_clogit)
 
 ```
 
+```{r}
+
+# CH: Dummy variable key
+
+# SOS 0 = No
+# SOS 1 = Yes
+
+# Info 0 = Anonymous
+# Info 1 = Non-anonymous
+
+# own 1 = fisher
+# own 2 = industry
+# own 3 = Government
+# Own 4 = Public
+
+
+```
 
 ## Pooled (Model II)
 ```{r}
@@ -70,32 +87,47 @@ summary(standard_clogit)
 pooled <- read_csv("int/pooled_data_fix.csv") %>%
   left_join(master_survey, by = "survey_id") %>%
   select(-noalt) %>%
-  mutate(own = as.factor(own))
+  mutate(own = as.factor(own)) %>% 
+  mutate(info = as.factor(info)) %>% 
+  mutate(country = as.factor(country))
 
-pooled <- within(pooled, own <- relevel(own, ref = 1))
 
-# pooled_clogit<-clogit(RES~sos+info+ own + strata(STR), data=pooled)
-# summary(pooled_clogit)
+# CH: Reassign reference level of "own" to "4" which is public, and "info" to "1" which is non-anon:
 
-pooled_clogit<-clogit(RES~sos+info+  own.fisher + own.industry  + own.gov + strata(STR), data=pooled)
+pooled$own <- fct_relevel(pooled$own, "4")
+
+pooled$info <- fct_relevel(pooled$info, "1")
+
+# CH: Use levels(pooled$info) to check levels
+
+
+pooled_clogit<-clogit(RES ~ sos + info + own + strata(STR), data=pooled)
 summary(pooled_clogit)
 
-# This is used as "model 1" in our paper to showcase conditional logit results 
+pooled_clogit2<-clogit(RES ~ sos + info +  own.fisher + own.industry  + own.gov + strata(STR), data=pooled) 
+summary(pooled_clogit2) # CH: added 2 at the end, because this version of the model is used for the preference weights figure. Gage had this as the one we used and commented out the one I am now using. The results were the same though....
+
+pooled_clogit3 <- clogit(RES ~ sos + info + own + country + strata(STR), data = pooled)
+summary(pooled_clogit3)
+
+
+# CH: pooled_clogit is used as "model 1" in our paper to showcase conditional logit results 
 
 ```
 
-
 ```{r}
+
+# CH: This is not working right after I changed the reference level for info in the models above...
 
 # make the graphs for actual preference weights
 
-sos_coef <- pooled_clogit$coefficients[1]
-info_coef <- pooled_clogit$coefficients[2]
-own_1_coef <- pooled_clogit$coefficients[3]
-own_2_coef <- pooled_clogit$coefficients[4]
-own_3_coef <- pooled_clogit$coefficients[5]
+sos_coef <- pooled_clogit2$coefficients[1]
+info_coef <- pooled_clogit2$coefficients[2]
+own_1_coef <- pooled_clogit2$coefficients[3]
+own_2_coef <- pooled_clogit2$coefficients[4]
+own_3_coef <- pooled_clogit2$coefficients[5]
 
-pooled_clogit_coefs <- data.frame(names = names(pooled_clogit$coefficients), clogit_coef = pooled_clogit$coefficients)
+pooled_clogit_coefs <- data.frame(names = names(pooled_clogit2$coefficients), clogit_coef = pooled_clogit2$coefficients)
 
 avg_own <- (own_1_coef + own_2_coef + own_3_coef)/4
 avg_info <- (info_coef)/2
@@ -201,90 +233,13 @@ Which is chi-squared distributed with K(M-1) degrees of freedom, where K is the 
 ```{r, results = 'asis'}
 
 # Table
-final_table <- stargazer(pooled_clogit, type = "html")
+final_table <- stargazer(pooled_clogit, pooled_clogit2, pooled_clogit3, type = "html")
 
 # Plot
 final_plot <- coefplot(pooled_clogit, color = "black") +
-  scale_y_discrete(name="Feature",labels=c("SOS Feature","Non-Private Information","Fisher Owned Data","Industry Owned Data","Government Owned Data")) +
+  scale_y_discrete(name="Feature",
+                   labels=c("SOS Feature","Non-Private Information","Fisher Owned Data","Industry Owned Data","Government Owned Data")) +
   theme_classic()
 final_plot
 
 ```
-
-
-## Make pooled predictions using predict()
-reasoning for predicting out a clogit model:
-
-https://markmail.org/search/?q=list%3Aorg.r-project.r-help+predict+clogit#query:list%3Aorg.r-project.r-help%20predict%20clogit%20from%3A%22Therneau%2C%20Terry%20M.%2C%20Ph.D.%22+page:1+mid:tsbl3cbnxywkafv6+state:results
-
-https://stackoverflow.com/questions/35329585/how-to-get-fitted-values-from-clogit-model
-
-```{r}
-#predictions for pooled data
-
-library(AlgDesign)
-ffd <- gen.factorial(c(2,2,4), varNames = c("sos", "info", "own"), factors = "all") # construct a full factorial design which has two 2 level attributes and one 4 level attribute. factors = "all" indicates that all arguments are factors
-ffd 
-
-all_packages <- ffd %>%
-  mutate(STR = 1001) %>% 
-  mutate(sos = ifelse(sos==2,1,0), info=ifelse(info==2,0,1)) %>%
-  mutate(own.fisher=ifelse(own==1,1,0), own.industry=ifelse(own==2,1,0), own.gov=ifelse(own==3,1,0), own.public=ifelse(own==4,1,0)) 
-
-#pooled_predictions <- predict(pooled_clogit, newdata = pooled, type = "expected", se.fit = TRUE) #this gives relative probs within strata. 
-
-pooled_predictions <- predict(pooled_clogit, newdata = all_packages, type = "risk", se.fit = TRUE) #this gives absolute probabilities.
-
-
-pooled_predictions_data <- data.frame(all_packages, pooled_predictions) #%>%
-  #select(STR, package, info, sos, own, RES, fit)
-
-# sos	0 = no, 1 = yes
-# info 	1 = non, 0 = anon
-# own	1 = fishers, 2 = industry, 3 = govt, 4 = public access
-#adopt : 1 = accept, 0 = decline
-
-pooled_predictions_data_final <- pooled_predictions_data %>%
-  mutate(level_probs1 = fit/(fit+ 1),
-         level_se = se.fit/(se.fit + 1)) %>%
-  select(-fit, -se.fit, -STR) %>%
-  arrange(-level_probs1) %>%
-  select(info, own, sos, own.fisher, own.industry, own.gov, own.public, level_probs1, level_se) %>%
-  mutate(info = case_when(
-    info == 0 ~ "Anon",
-    info == 1 ~ "Non-Anon"
-  ),
-  own = case_when(
-   own == 1 ~ "Fishers",
-   own == 2 ~ "Industry",
-   own == 3 ~ "Government",
-   own == 4 ~ "Public Access"
-  ),
-  sos = case_when(
-    sos == 0 ~ "No",
-    sos == 1 ~ "Yes"
-  )) %>%
-  rename("Probability" = "level_probs1",
-         "SE" = "level_se")
-
-pooled_predictions_data_final
-
-```
-
-```{r}
-
-# Table of pooled model predition results
-
-table_predictions <- pooled_predictions_data_final %>% 
-  mutate(probability_pct = Probability*100) %>% # add new column that transforms probability to percentage
-  select(info, own, sos, probability_pct, SE) %>% # rearrange column order and drop other columns
-  mutate_if((is.numeric), round, 2) # round all numeric columns to 2 digits
-
-
-probability_table <- kable(table_predictions, col.names = c("Information","Ownership","Safety","Probability (%)", "SE")) %>% 
-  kable_styling(full_width = F, position = "center")
-probability_table
-
-
-```
-
