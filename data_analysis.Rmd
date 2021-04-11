@@ -40,6 +40,7 @@ library(tidyverse)
 library(survival) # for clogit
 library(stargazer)
 library(coefplot)
+library(mclogit)
 
 # might use these
 library(xtable)
@@ -89,7 +90,8 @@ pooled <- read_csv("int/pooled_data_fix.csv") %>%
   select(-noalt) %>%
   mutate(own = as.factor(own)) %>% 
   mutate(info = as.factor(info)) %>% 
-  mutate(country = as.factor(country))
+  mutate(country_dum = ifelse(country == 'IND', 1, 0)) %>%  # creating dummy variables column for country, indo = 1 mex = 0
+  mutate(country_dum = as.factor(country_dum))
 
 
 # CH: Reassign reference level of "own" to "4" which is public, and "info" to "1" which is non-anon:
@@ -107,8 +109,8 @@ summary(pooled_clogit)
 pooled_clogit2<-clogit(RES ~ sos + info +  own.fisher + own.industry  + own.gov + strata(STR), data=pooled) 
 summary(pooled_clogit2) # CH: added 2 at the end, because this version of the model is used for the preference weights figure. Gage had this as the one we used and commented out the one I am now using. The results were the same though....
 
-pooled_clogit3 <- clogit(RES ~ sos + info + own + country + strata(STR), data = pooled)
-summary(pooled_clogit3)
+
+mclogit <- mclogit(RES ~ sos + info + own + country_dum + strata(STR), data = pooled)
 
 
 # CH: pooled_clogit is used as "model 1" in our paper to showcase conditional logit results 
