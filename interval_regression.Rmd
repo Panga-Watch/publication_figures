@@ -1,0 +1,914 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(tidyverse)
+library(ggfortify)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(viridis)
+library(ggthemes)
+library(DT)
+library(magrittr)
+library(qwraps2)
+library(kableExtra)
+library(ggalt)
+library(WDI)
+library(foreign)
+#library(GGally) Not using this - Corinna H.
+library(survival)
+#library(Metrics) Not using this - Corinna H.
+library(cowplot)
+#library(reshape) Not using this- Corinna H.
+library(RColorBrewer)
+```
+
+# BLR including WTP
+```{r}
+#data formatting 
+choice <- read.csv("version_to_package.csv", stringsAsFactors = TRUE) %>% 
+  dplyr::rename(survey_version = 1)
+
+packages <- read.csv("packages.csv", stringsAsFactors = TRUE)  %>% 
+  dplyr::rename(package = 1)
+
+choice_package <- choice %>% 
+  left_join(packages) %>% 
+  mutate(choice = ifelse(package <= 16,1,2))
+
+
+survey <- read.csv("master_survey_resp.csv", stringsAsFactors = TRUE) %>% 
+  select(survey_id, survey_version, country, choice, package_nopackage, starts_with("wtp"), starts_with("wtr"))
+
+pack_yes <- survey %>% 
+  filter(package_nopackage == 1) %>% 
+  mutate(wtp = ifelse(wtp_4 == "y", 4,
+                      ifelse(wtp_4 == "n", 3,
+                             ifelse(wtp_3 =="n", 2,
+                                    ifelse(wtp_2 =="n", 1, 0))))) %>% 
+  select(-starts_with("wtp_"), -starts_with("wtr_"), -package_nopackage) %>% 
+  left_join(choice_package) %>% 
+  mutate(choice = 1)
+
+pack_no <- survey %>% 
+  filter(package_nopackage == 0) %>% 
+  mutate(wtp = ifelse(wtr_4 == "y", -4,
+                      ifelse(wtr_4 == "n", -5,
+                             ifelse(wtr_3 =="y", -3,
+                                    ifelse(wtr_2 =="y", -2, -1))))) %>% 
+  select(-starts_with("wtp_"), -starts_with("wtr_"), -package_nopackage) %>% 
+  left_join(choice_package) %>% 
+  mutate(choice = 1)
+
+pack_no_no <- pack_no %>% 
+  mutate(wtp = (wtp + 1)) %>% 
+  mutate(choice = 0)
+
+pack_yes_no <- pack_yes %>% 
+  filter(wtp != 4) %>% 
+  mutate(wtp = (wtp + 1)) %>% 
+  mutate(choice = 0)
+
+bind_pre <- rbind(pack_no,pack_yes, pack_no_no, pack_yes_no) %>% 
+  filter(wtp != -5)
+
+other_pack <- bind_pre %>% 
+  select(survey_id, survey_version, country,  choice) %>%
+  mutate(choice = ifelse(choice == 1,2,1)) %>% 
+  left_join(choice_package) %>% 
+  mutate(choice = 0) %>% 
+  mutate(wtp = 0)
+
+bind <- rbind(bind_pre, other_pack) 
+
+```
+
+For IND
+
+wtp_1 = $2.14
+wtp_2 = $3.56
+wtp_3 = $5.35
+wtp_4 = $7.12
+
+For MEX 
+
+wtp_1 = $2.07
+wtp_2 = $3.62
+wtp_3 = $5.17
+wtp_4 = $7.75
+
+```{r}
+#wtp == -5, -100, 
+bind_ind <- bind %>% 
+  filter(country =="IND") %>% 
+  mutate(wtp = 
+                      ifelse(wtp == -4, -7.12,
+                       ifelse(wtp == -3, -5.35, 
+                              ifelse(wtp == -2, -3.56,
+                                      ifelse(wtp == -1, -2.14, 
+                                             ifelse(wtp == 0, 0, 
+                                                    ifelse(wtp == 1, 2.14, 
+                                                           ifelse(wtp == 2, 3.56, 
+                                                                  ifelse(wtp == 3, 5.35, 7.12)))))))))
+#ifelse(wtp == -5, -100,
+bind_mex <- bind %>% 
+  filter(country =="MEX") %>% 
+  mutate(wtp =
+                    ifelse(wtp == -4, -7.75,
+                       ifelse(wtp == -3, -5.17, 
+                              ifelse(wtp == -2, -3.62,
+                                      ifelse(wtp == -1, -2.07, 
+                                             ifelse(wtp == 0, 0, 
+                                                    ifelse(wtp == 1, 2.07, 
+                                                           ifelse(wtp == 2, 3.62, 
+                                                                  ifelse(wtp == 3, 5.17, 7.75)))))))))
+
+bind_wtp <- rbind(bind_mex,bind_ind) %>% 
+  mutate(own = as.factor(own))
+
+
+#making the df to be used for log-log
+bind_log <- bind_wtp %>% 
+  filter(choice == 1) %>% 
+  mutate(sos = ifelse(sos==1,0,1)) %>% 
+  mutate(info = ifelse(info == 2,0,1)) %>% 
+  mutate(own = as.factor(own)) 
+mean(bind_log$wtp)
+#write.csv(bind_log, "int/log_log_wtp.csv", row.names = FALSE)
+```
+
+
+```{r}
+# wtp_distribution <- bind %>% 
+#   filter(choice == 1) %>% 
+#   select(wtp) %>%
+#   mutate(wtp_p4 = wtp + 4) %>% 
+#   mutate(log_wtp = log(wtp_p4)) %>% 
+#   gather(variable, value) 
+#   
+# wtp_distribution %>% 
+#  ggplot(aes(x = value, fill = variable)) +
+#     geom_bkde() +
+#     geom_rug() +
+#     scale_fill_viridis(guide = FALSE, discrete = TRUE) +
+#     facet_wrap(~variable, scales = "free") +
+#     theme_base()
+
+```
+
+
+
+```{r}
+variables <- read_csv("int/variables.csv")
+
+variables_log <- variables %>% 
+  select(survey_id, country, community, income, years_fishing, age, education, boat_status)
+```
+
+Adding variables Income, Education, Years Fishing, Age, Country, Fishing Organization Members, Biggest problem facing fishery, fishing technology exposure, boat ownership.
+```{r}
+
+income_summary <-
+  list("Monthly Income" =
+       list("min" = ~ min(.data$income),
+            "max" = ~ max(.data$income),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$income)))
+
+income_na <- variables %>% 
+  select(community, income) %>% 
+  na.omit() %>% 
+  mutate(community = as.factor(community))
+  
+by_com <- summary_table(dplyr::group_by(income_na, community), income_summary)
+kable(by_com)
+
+#HUGE distribution of income in IND, especially in WKB (10^7 difference) min is a single digit number, which does not make sense for Indonesia (Annual income for lowest income would be $0.0043) 
+
+#Fixing for Wkb income error & currency conversion 
+
+#0.000071 USD / 1 Indonesian Rupiah 
+#0.052 USD / 1 Medican Peso
+
+income_fix <- variables %>% 
+  select(survey_id, country, community, income) %>%
+  mutate(income = ifelse(country == "IND" & income <= 10, income*1000000, income)) %>% 
+  mutate(currency = ifelse(country=="MEX", 0.052, 0.000071)) %>% 
+  mutate(income_usd = currency*income*12) %>% 
+  mutate(income_usd = round(income_usd, digits = 2))
+
+usd_com_mean <-income_fix %>% 
+  group_by(community) %>% 
+  summarise(mean_income = mean(income_usd, na.rm = TRUE))
+
+#adding in GDP per Capita conversion 
+gdp_raw <- WDI(indicator = "NY.GDP.PCAP.KD", country=c("MX", "ID"), start = 2018, end = 2018) %>% 
+  mutate(country = ifelse(country=="Mexico", "MEX", "IND")) %>% 
+  dplyr::rename(c = 1) %>% 
+  select(-c, -year)
+
+variables_income_fix <- income_fix %>% 
+  left_join(usd_com_mean) %>%
+  mutate(gf_income = ifelse(is.na(income), 1, 0)) %>% 
+  mutate(income_usd = ifelse(is.na(income), mean_income, income_usd)) %>% 
+  left_join(gdp_raw) %>% 
+  mutate(gdp_prop = income_usd/NY.GDP.PCAP.KD)
+
+gdp_prop<-variables_income_fix %>% 
+  select(survey_id, gdp_prop, income_usd, NY.GDP.PCAP.KD)
+```
+
+Income from fishing, percent-gap filled
+```{r}
+fishincome <- variables %>%
+  select(survey_id, country, community, income_fishing) %>%
+  group_by(community) %>%
+  summarise(mean_fishincome = round(mean(income_fishing, na.rm = TRUE),0))
+
+variables_fishincome <- variables %>%
+  select(survey_id, country, community, income_fishing) %>%
+  mutate(income_fishing = as.numeric(income_fishing)) %>%
+  left_join(fishincome) %>%
+  mutate(gf_fishincome = ifelse(is.na(income_fishing), 1, 0)) %>% 
+  mutate(income_fishing = ifelse(is.na(income_fishing), mean_fishincome, 
+                                 ifelse(income_fishing == 0, mean_fishincome, income_fishing))) %>% 
+  select(survey_id, country, community, income_fishing)
+
+```
+
+
+```{r}
+#education
+variables_edu <- variables %>% 
+  select(survey_id, country, community, education) %>%  
+  mutate(education = as.character(education)) %>% 
+  mutate(education = ifelse(education == "other", "secondary", education)) %>%
+  mutate(education = case_when(
+    education == "no_formal" ~ "no_formal",
+    education == "primary" | education == "secondary" ~ "formal",
+    education == "university" | education == "vocational" ~ "higher"
+  )) %>%
+  mutate(education = as.factor(education))
+```
+
+```{r}
+#gapfill means for each village for variable "fishing_org_members"... except for MNC.. gapfill with overall indonesia mean 
+# 61.86538 is the average fishing org size from survey in IND round up to 62 
+
+members_group <- variables %>%
+  select(survey_id, country, community, fishing_org_members) %>%
+  group_by(community) %>%
+  summarise(mean_mem = round(mean(fishing_org_members, na.rm = TRUE),0))
+
+variables_members <- variables %>%
+  select(survey_id, country, community, fishing_org_members) %>%
+  mutate(fishing_org_members = as.numeric(fishing_org_members)) %>%
+  left_join(members_group) %>%
+  mutate(gapfill_members = ifelse(is.na(fishing_org_members), 1, 0),
+         fishing_org_members = case_when(
+           is.na(fishing_org_members) & community != "MNC" ~ mean_mem,
+           is.na(fishing_org_members & community == "MNC") ~ 62, 
+           !is.na(fishing_org_members) ~ fishing_org_members)) %>%
+      select(survey_id, country, community, fishing_org_members)
+
+```
+
+```{r}
+## tidy up fishtech variable... combine into one.. they have exposure to a type of fishing technology, or they don't.
+
+variables_fishtech <- variables %>%
+    select(survey_id, country, community, starts_with("fishtech")) %>%
+  mutate(fishtech = ifelse(fishtech_none == 1, 0, 1),
+         fishtech = ifelse(is.na(fishtech_none), 0, fishtech)) %>%
+        mutate(fishtech = ifelse(fishtech_vhf == 1 & fishtech == 0, 1, fishtech),
+               fishtech = ifelse(is.na(fishtech_vhf), 0 , fishtech)) %>%
+  select(survey_id, country, community, fishtech)
+
+```
+
+
+
+Combining corrected variables (income and education) with years_fishing, age, community
+
+```{r}
+avg_years_fish_by_country <- variables %>%
+  group_by(country) %>%
+  summarise(mean(years_fishing)) ## use this value to gapfill for the one case where years_fishing > age... works because the mean is less than the age. 
+
+variables_fishing_years <-
+  variables %>%
+  select(survey_id, country, community, years_fishing, age) %>%
+  mutate(years_fishing = ifelse(years_fishing > age, 22.5, years_fishing))
+```
+
+simplify boat ownership 
+```{r}
+variables_boat_own <- variables %>% 
+  mutate(boat_own = ifelse(boat_status == "own", 1,0)) %>% 
+  select(survey_id, boat_own)
+```
+
+```{r}
+problems<-variables %>% 
+  select(survey_id, community, rank_one) %>% 
+  mutate(rank = as.factor(rank_one)) %>% 
+  group_by(community) %>% 
+  count(rank)
+
+variables_rankone<-variables %>% 
+  select(survey_id, community, rank_one) %>%
+  mutate(rank_one = ifelse(is.na(rank_one) & community == "RAJ", "weather", 
+                           ifelse(is.na(rank_one) & community =="WKB", "iuu", rank_one)))
+```
+
+```{r}
+variables_log<-variables %>% 
+  select(survey_id, country, community, years_fishing, age, boat_length_m, fishing_organization) %>% 
+  left_join(variables_edu) %>% 
+  left_join(gdp_prop) %>%
+  left_join(variables_members) %>%
+  left_join(variables_fishtech) %>%
+  left_join(variables_fishing_years) %>% 
+  left_join(variables_boat_own) %>% 
+  left_join(variables_fishincome) %>% 
+  left_join(variables_rankone)
+
+#write.csv(variables_log, "int/log_log_variables.csv", row.names = FALSE)
+
+```
+
+
+
+```{r}
+#variables_log <- read_csv("int/log_log_variables.csv")
+#bind_log <- read_csv("int/log_log_wtp.csv")
+
+
+bind_log_final <- bind_log %>%
+  left_join(variables_log) %>%
+  within(own <- relevel(own, ref = 4)) %>%
+  within(education <- relevel(education, ref = "no_formal"))
+
+wtpmin<- min(bind_log_final$wtp)
+
+```
+
+Include new summary function that incorporates clusters
+```{r}
+# load necessary packages for importing the function
+library(RCurl)
+ 
+# import the function from repository
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+# eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     # envir=.GlobalEnv) Not using this - Corinna H.
+```
+
+Prep data for interval regression
+```{r}
+## Make it into interval data... and run models again.. without log..
+
+
+# For IND
+# wtp_1 = $2.14
+# wtp_2 = $3.56
+# wtp_3 = $5.35
+# wtp_4 = $7.12
+
+# For MEX 
+# wtp_1 = $2.07
+# wtp_2 = $3.62
+# wtp_3 = $5.17
+# wtp_4 = $7.75
+
+
+#wtp == -100, -7.75,
+
+bind_interval_mex <- bind_log_final %>% 
+  filter(country == "MEX") %>%
+  mutate(wtp_upper = 
+                    ifelse(wtp == -7.75, -5.17, 
+                       ifelse(wtp == -5.17, -3.62,
+                              ifelse(wtp == -3.62, -2.07,
+                                      ifelse(wtp == -2.07, 0,
+                                             ifelse(wtp == 0, 2.07, 
+                                                    ifelse(wtp == 2.07, 3.62,
+                                                           ifelse(wtp == 3.62, 5.17,
+                                                                  ifelse(wtp == 5.17, 7.75, 13.33))))))))) ## chose 13.33 as the upper bound because this is two cell phone bill increments higher than 7.75
+                                                                        
+#ifelse(wtp == -100, -7.12,                                                                       
+ bind_interval_ind <- bind_log_final %>%
+       filter(country == "IND") %>%
+   mutate(wtp_upper = 
+          ifelse(wtp == -7.12, -5.35,
+            ifelse(wtp == -5.35, -3.56, 
+              ifelse(wtp == -3.56, -2.14,
+                ifelse(wtp == -2.14, 0, 
+                  ifelse(wtp == 0, 2.14, 
+                    ifelse(wtp == 2.14, 3.56, 
+                      ifelse(wtp == 3.56, 5.35, 
+                        ifelse(wtp == 5.35, 7.12, 11.02))))))))) ## chose 11.02 as the upper bound because this is two cell phone bill increments higher than 7.12
+  
+
+bind_interval_final <- rbind(bind_interval_ind, bind_interval_mex) %>%
+  dplyr::rename("wtp_lower" = "wtp")  %>%
+  arrange(survey_id)
+
+intervals <- with(bind_interval_final, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final)), type = "interval"))
+intervals
+
+```
+
+Run regressions on interval data
+```{r}
+int_tech <- survreg(intervals ~ sos + info + own, data = bind_interval_final, dist = "gaussian")
+summary(int_tech)
+
+int <- survreg(intervals ~ sos + info + own + education + gdp_prop, data = bind_interval_final, dist = "gaussian")
+summary(int)
+
+int_1 <- survreg(intervals ~ sos + info + own + education + years_fishing, data = bind_interval_final, dist = "gaussian")
+summary(int_1, cluster = c("community"))
+
+int_2 <- survreg(intervals ~ sos + info + own + education + boat_length_m, data = bind_interval_final, dist = "gaussian")
+summary(int_2, cluster = c("community"))
+
+int_3 <- survreg(intervals ~ sos + info + own + education + boat_length_m + fishtech, data = bind_interval_final, dist = "gaussian")
+summary(int_3, cluster = c("community"))
+
+int_4 <- survreg(intervals ~ sos + info + own + education  + fishtech + gdp_prop, data = bind_interval_final, dist = "gaussian")
+summary(int_4, cluster = c("community"))
+
+int_5 <- survreg(intervals ~ sos + info + own + education + years_fishing + fishtech, data = bind_interval_final, dist = "gaussian")
+summary(int_5, cluster = c("community"))
+
+int_6 <- survreg(intervals ~ sos + info + own + education + years_fishing + gdp_prop + fishtech, data = bind_interval_final, dist = "gaussian")
+summary(int_6, cluster = c("community"))
+
+int_7 <- survreg(intervals ~ sos + info + own + education +  fishtech, data = bind_interval_final, dist = "gaussian")
+summary(int_7, cluster = c("community"))
+
+int_8 <- survreg(intervals ~ sos + info + own + gdp_prop +  fishtech, data = bind_interval_final, dist = "gaussian")
+summary(int_8, cluster = c("community"))
+
+int_9 <- survreg(intervals ~ sos + info + own + gdp_prop +  fishtech + boat_own, data = bind_interval_final, dist = "gaussian")
+summary(int_9, cluster = c("community"))
+
+int_10 <- survreg(intervals ~ sos + info + own + gdp_prop +  fishtech + fishing_organization, data = bind_interval_final, dist = "gaussian")
+summary(int_10, cluster = c("community"))
+
+int_11 <- survreg(intervals ~ sos + info + own + gdp_prop +  fishtech + income_fishing, data = bind_interval_final, dist = "gaussian")
+summary(int_11, cluster = c("community"))
+
+int_12 <- survreg(intervals ~ sos + info + own + gdp_prop +  fishtech + rank_one, data = bind_interval_final, dist = "gaussian")
+summary(int_12, cluster = c("community"))
+
+int_13 <- survreg(intervals ~ sos + info + own +  fishtech + rank_one + fishing_organization, data = bind_interval_final, dist = "gaussian")
+summary(int_13, cluster = c("community"))
+
+int_15 <- survreg(intervals ~ sos + info + own + rank_one + fishtech + education, data = bind_interval_final, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_15, cluster = c("community"))
+
+int_16 <- survreg(intervals ~ sos + info + own + rank_one + fishtech + education + gdp_prop, data = bind_interval_final, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_16, cluster = c("community"))
+
+#save(int_15, file = "output/int_15.rda") # save best model
+
+#save(int_16, file = "output/int_16_gdp_prop.rda") # save best model with gdp_prop
+
+AIC(int_tech, int, int_1, int_2, int_3, int_4, int_5, int_6, int_7, int_8, int_9, int_10, int_11, int_12, int_13, int_15, int_16)
+```
+
+```{r}
+
+# Get something like an R2 value by calculating correlations between predicted values and lower/upper bounds of wtp.
+(r <- with(bind_interval_final, cor(cbind(yhat = predict(int_15), wtp_lower, wtp_upper))))
+#                yhat wtp_lower wtp_upper
+# yhat      1.0000000 0.4924348 0.5067043
+# wtp_lower 0.4924348 1.0000000 0.9685061
+# wtp_upper 0.5067043 0.9685061 1.0000000
+# pseudo R2
+r^2
+#                yhat wtp_lower wtp_upper
+# yhat      1.0000000 0.2424921 0.2567492
+# wtp_lower 0.2424921 1.0000000 0.9380041
+# wtp_upper 0.2567492 0.9380041 1.0000000
+
+summary(int_15, cluster = c("community"))
+
+anova(int_15)
+
+```
+
+Predict on our data with int_15 and see if predicted values fall into interval range: GRAPHS
+```{r}
+
+int_predictions <- data.frame(bind_interval_final, wtp_predict = predict(int_15, newdata = bind_interval_final)) %>%
+  mutate(in_interval = ifelse(wtp_predict < wtp_upper & wtp_predict > wtp_lower, 1, 0)) %>%
+  select(survey_id, country, wtp_lower, wtp_upper, wtp_predict, in_interval, education, rank_one, fishtech, sos, info, own) %>%
+  unite(interval, wtp_lower:wtp_upper, sep = ", ", remove = FALSE) %>%
+  mutate(bid_intervals_mean = (wtp_lower + wtp_upper)/2) %>%
+  mutate(interval_range = (wtp_upper - wtp_lower)) %>%
+  mutate(upper_difference = wtp_predict - wtp_upper, lower_difference = wtp_predict - wtp_lower) %>%
+  mutate(type_prediction = case_when(
+    wtp_predict < wtp_lower ~ "under estimation",
+    wtp_predict > wtp_upper ~ "over estimation", 
+    wtp_predict < wtp_upper & wtp_predict > wtp_lower ~ "within interval"
+  ))
+
+int_predictions %>%
+  filter(country == "IND") %>%
+  ggplot(aes(x = bid_intervals_mean, y = wtp_predict, color = type_prediction)) +
+  geom_point() +
+  scale_x_continuous(breaks = c(-5.35, -3.56, -2.14, 0, 2.14, 3.56, 5.35, 7.12, 11.02), limits = c(-5.35, 11.02)) +
+  scale_y_continuous(breaks = c(-5.35, -3.56, -2.14, 0, 2.14, 3.56, 5.35, 7.12, 11.02), limits = c(-5.35, 11.02)) +
+  geom_errorbarh(aes(xmin =  bid_intervals_mean - (interval_range/2), xmax = bid_intervals_mean + (interval_range/2), height = 0)) +
+  labs(x = "Actual Willingness To Pay Ranges", y = "Predicted Willingness To Pay", color = "") +
+  geom_abline(intercept = 0, slope = 1) +
+  theme(legend.position = "top") +
+  scale_color_manual(labels = c("Over Estimation", "Under Estimation", "Within Interval"), values = c("goldenrod1", "forestgreen", "cornflowerblue")) +
+  theme_bw()
+
+int_predictions %>%
+  filter(country == "MEX") %>%
+  ggplot(aes(x = bid_intervals_mean, y = wtp_predict, color = type_prediction)) +
+  geom_point() +
+  scale_x_continuous(breaks = c(-5.17, -3.62, -2.07, 0, 2.07, 3.62, 5.17, 7.75, 13.33), limits = c(-5.17, 13.33)) +
+  scale_y_continuous(breaks = c(-5.17, -3.62, -2.07, 0, 2.07, 3.62, 5.17, 7.75, 13.33), limits = c(-5.17, 13.33)) +
+  geom_errorbarh(aes(xmin =  bid_intervals_mean - (interval_range/2), xmax = bid_intervals_mean + (interval_range/2)), height = 0) +
+  labs(x = "Actual Willingness To Pay", y = "Predicted Willingness To Pay", color = "") +
+  geom_abline(intercept = 0, slope = 1) +
+  theme(legend.position = "top") +
+  scale_color_manual(labels = c("Over Estimation", "Under Estimation", "Within Interval"), values = c("goldenrod1", "forestgreen", "cornflowerblue")) +
+  theme_bw()
+
+
+
+# average difference for those that fall out of intervals for upper and lower limits
+
+
+```
+
+```{r, eval = FALSE}
+# Taken out to be able to knit while making a stargazer table
+library(huxtable)
+
+#What percentage of our predictions fall within the reveal wtp range?
+(table <- int_predictions %>%
+  group_by(type_prediction) %>%
+  summarise(count = length(in_interval), avg_diff_upper = mean(upper_difference),
+            avg_diff_lower = mean(lower_difference)) %>%
+  mutate(perc = round((count/188)*100,1)))
+
+hux(table)
+## 72.3% of our predictions fall out of the range... 
+## 27.7% of our predictions fall in the range...
+## the predictions aren't absolutely outrageous after eye-checking them. 
+
+## lower_wtp - predicted
+## upper_wtp - predicted
+
+## graph this for each fisher
+## do for overall and calculate average range of error
+## make model for indonensia data and predict on mexico data
+## make model for mexico and predict on indonesia
+## make graph for all LOOCV 
+
+```
+
+Split data in half and parameterize the model:
+
+```{r, eval = FALSE}
+# Taken out to be able to knit while making stargazer table, 
+bind_interval_final_train_half <- bind_interval_final %>%
+  head(., 94)
+
+bind_interval_final_test_half <- bind_interval_final %>%
+  tail(., 94)
+
+intervals_train_half <- with(bind_interval_final_train_half, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final_train_half)), type = "interval"))
+
+intervals_test_half <- with(bind_interval_final_test_half, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final_test_half)), type = "interval"))
+
+int_15_train_half <- survreg(intervals_train_half ~ sos + info + own + rank_one + fishtech + education, data = bind_interval_final_train_half, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_15_train_half, cluster = c("community"))
+
+#                     Value Std. Error     z       p
+# (Intercept)        0.7618     1.5887  0.48 0.63159
+# sos                0.6477     0.5147  1.26 0.20822
+# info              -0.7666     0.4157 -1.84 0.06517
+# own1               1.3374     0.5555  2.41 0.01606
+# own2               0.9793     0.8067  1.21 0.22479
+# own3               0.7262     0.5733  1.27 0.20521
+# rank_oneiuu       -2.2593     0.9729 -2.32 0.02022
+# rank_onepollution -3.2900     0.9900 -3.32 0.00089
+# rank_oneweather   -3.3238     0.8056 -4.13 3.7e-05
+# fishtech           1.1995     0.4599  2.61 0.00910
+# educationformal    3.4018     1.3196  2.58 0.00994
+# educationhigher    4.1320     1.5118  2.73 0.00627
+# Log(scale)         0.6402     0.0795  8.05 8.1e-16
+
+int_15_test_half <- survreg(intervals_test_half ~ sos + info + own + rank_one + fishtech + education, data = bind_interval_final_test_half, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_15_test_half, cluster = c("community"))
+
+#                     Value Std. Error     z      p
+# (Intercept)        3.2362     2.1262  1.52  0.128
+# sos                2.1915     1.0289  2.13  0.033
+# info              -0.4621     0.6863 -0.67  0.501
+# own1               0.5740     0.9690  0.59  0.554
+# own2               0.8447     1.0550  0.80  0.423
+# own3              -1.5923     0.9157 -1.74  0.082
+# rank_oneiuu       -1.6393     0.9894 -1.66  0.098
+# rank_onepollution -1.3335     0.9145 -1.46  0.145
+# rank_oneweather   -2.1294     1.4761 -1.44  0.149
+# fishtech          -0.4043     1.1184 -0.36  0.718
+# educationformal    1.8052     1.7776  1.02  0.310
+# educationhigher    3.1322     2.2274  1.41  0.160
+# Log(scale)         1.1254     0.0818 13.75 <2e-16
+
+
+bind_interval_final_mex <- bind_interval_final %>%
+  filter(country == "MEX")
+
+intervals_mex <- with(bind_interval_final_mex, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final_mex)), type = "interval"))
+
+bind_interval_final_ind <- bind_interval_final %>%
+  filter(country == "IND")
+
+intervals_ind <- with(bind_interval_final_ind, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final_ind)), type = "interval"))
+
+
+int_15_mex <- survreg(intervals_mex ~ sos + info + own + rank_one + fishtech + education, data = bind_interval_final_mex, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_15_mex, cluster = c("community"))
+
+#                     Value Std. Error     z       p
+# (Intercept)        2.6715     2.3812  1.12 0.26190
+# sos                3.5457     0.9783  3.62 0.00029
+# info              -0.2681     0.6878 -0.39 0.69666
+# own1               0.9992     0.9396  1.06 0.28758
+# own2               0.8221     1.1254  0.73 0.46512
+# own3              -1.2424     0.9277 -1.34 0.18051
+# rank_oneiuu       -1.3179     0.9166 -1.44 0.15048
+# rank_onepollution -1.2608     0.8361 -1.51 0.13155
+# rank_oneweather   -7.3607     2.2048 -3.34 0.00084
+# fishtech           0.0000     0.0000    NA      NA
+# educationformal    0.3641     2.2725  0.16 0.87270
+# educationhigher    1.5515     2.5473  0.61 0.54247
+# Log(scale)         1.0537     0.0902 11.68 < 2e-16
+
+int_15_ind <- survreg(intervals_ind ~ sos + info + own + rank_one + fishtech + education, data = bind_interval_final_ind, dist = "gaussian") ## normal distribution... WTP does look normal
+summary(int_15_ind, cluster = c("community"))
+
+#                     Value Std. Error     z      p
+# (Intercept)        2.5078     1.5720  1.60 0.1107
+# sos               -0.1463     0.5713 -0.26 0.7979
+# info              -0.5747     0.4469 -1.29 0.1985
+# own1               0.7868     0.6212  1.27 0.2054
+# own2               0.9195     0.8112  1.13 0.2570
+# own3               0.0250     0.6193  0.04 0.9678
+# rank_oneiuu       -1.6309     1.2175 -1.34 0.1804
+# rank_onepollution -3.9572     1.2926 -3.06 0.0022
+# rank_oneweather   -3.2240     1.1333 -2.84 0.0044
+# fishtech           0.9622     0.4989  1.93 0.0538
+# educationformal    3.0011     1.1481  2.61 0.0089
+# educationhigher    3.4255     1.4570  2.35 0.0187
+# Log(scale)         0.7902     0.0741 10.66 <2e-16
+
+plot(residuals(int_15_mex)) ## pretty random.
+
+plot(residuals(int_15_ind)) # pretty random.
+
+## predict mexican data with indonesia parameterized model:
+indo_model_mexi_df_predict <- data.frame(bind_interval_final_mex, wtp_predict = predict(int_15_ind, newdata = bind_interval_final_mex)) %>%
+  mutate(in_interval = ifelse(wtp_predict < wtp_upper & wtp_predict > wtp_lower, 1, 0)) %>%
+  select(survey_id, country, wtp_lower, wtp_upper, wtp_predict, in_interval, education, rank_one, fishtech, sos, info, own) %>%
+  unite(interval, wtp_lower:wtp_upper, sep = ", ", remove = FALSE) %>%
+  mutate(bid_intervals_mean = (wtp_lower + wtp_upper)/2) %>%
+  mutate(interval_range = (wtp_upper - wtp_lower),
+         upper_difference = wtp_predict - wtp_upper,
+         lower_difference = wtp_predict - wtp_lower
+         )  %>%
+  mutate(type_prediction = case_when(
+    wtp_predict < wtp_lower ~ "under estimation",
+    wtp_predict > wtp_upper ~ "over estimation", 
+    wtp_predict < wtp_upper & wtp_predict > wtp_lower ~ "within interval"
+  ))
+
+indo_model_mexi_df_predict %>%
+  ggplot(aes(x = bid_intervals_mean, y = wtp_predict, color = type_prediction)) +
+  geom_point() +
+  scale_x_continuous(breaks = c(-5.17, -3.62, -2.07, 0, 2.07, 3.62, 5.17, 7.75, 13.33), limits = c(-5.17, 13.33)) +
+  scale_y_continuous(breaks = c(-5.17, -3.62, -2.07, 0, 2.07, 3.62, 5.17, 7.75, 13.33), limits = c(-5.17, 13.33)) +
+  geom_errorbarh(aes(xmin =  bid_intervals_mean - (interval_range/2), xmax = bid_intervals_mean + (interval_range/2), height = 0)) +
+  labs(title = "Indonesia Model Predicted on Mexican Data", x = "Actual WTP", y = "Predicted WTP") +
+  geom_abline(intercept = 0, slope = 1)
+
+(table2 <- indo_model_mexi_df_predict %>%
+  group_by(type_prediction) %>%
+  summarise(count = length(in_interval), 
+            avg_diff_upper = mean(upper_difference),
+            avg_diff_lower = mean(lower_difference)) %>%
+  mutate(perc = round((count/81)*100,1)))
+
+hux(table2)
+
+
+## predict indonesia data with mexican model
+mexi_model_indo_df_predict <- data.frame(bind_interval_final_ind, wtp_predict = predict(int_15_mex, newdata = bind_interval_final_ind)) %>%
+  mutate(in_interval = ifelse(wtp_predict < wtp_upper & wtp_predict > wtp_lower, 1, 0)) %>%
+  select(survey_id, country, wtp_lower, wtp_upper, wtp_predict, in_interval, education, rank_one, fishtech, sos, info, own) %>%
+  unite(interval, wtp_lower:wtp_upper, sep = ", ", remove = FALSE) %>%
+  mutate(bid_intervals_mean = (wtp_lower + wtp_upper)/2) %>%
+  mutate(interval_range = (wtp_upper - wtp_lower),
+         type_prediction = case_when(
+    wtp_predict < wtp_lower ~ "under estimation",
+    wtp_predict > wtp_upper ~ "over estimation", 
+    wtp_predict < wtp_upper & wtp_predict > wtp_lower ~ "within interval"
+  ),
+  
+       upper_difference = wtp_predict - wtp_upper,
+         lower_difference = wtp_predict - wtp_lower)  
+
+mexi_model_indo_df_predict %>%
+  filter(country == "IND") %>%
+  ggplot(aes(x = bid_intervals_mean, y = wtp_predict, color = type_prediction)) +
+  geom_point() +
+  scale_x_continuous(breaks = c(-5.35, -3.56, -2.14, 0, 2.14, 3.56, 5.35, 7.12, 11.02), limits = c(-5.35, 11.02)) +
+  scale_y_continuous(breaks = c(-5.35, -3.56, -2.14, 0, 2.14, 3.56, 5.35, 7.12, 11.02), limits = c(-5.9, 11.02)) +
+  geom_errorbarh(aes(xmin =  bid_intervals_mean - (interval_range/2), xmax = bid_intervals_mean + (interval_range/2), height = 0)) +
+  labs(title = "Mexican Model Predicted on Indo Data", x = "Actual WTP", y = "Predicted WTP") +
+  geom_abline(intercept = 0, slope = 1)
+
+(table3 <- mexi_model_indo_df_predict %>%
+  group_by(type_prediction) %>%
+  summarise(count = length(in_interval),
+            avg_diff_upper = mean(upper_difference),
+            avg_diff_lower = mean(lower_difference)) %>%
+  mutate(perc = round((count/107)*100,1)))
+
+hux(table3)
+
+```
+
+
+Everything below here still tweaking with:
+Corinna changed all to eval = false
+```{r, eval = FALSE}
+#intervals = with(bind_interval_final, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(bind_interval_final)), type = "interval"))
+
+
+score = list()
+models = list()
+
+# LOOCV_function = function(x,label){
+  x = bind_interval_final
+  label = "wtp"
+ for(i in 1:nrow(x)){
+   #i = 1
+   
+ training = x[-i,] %>%
+   arrange(survey_id)
+ training_intervals = with(training, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(training)), type = "interval"))
+ 
+ model = survreg(training_intervals ~ sos + info + own + rank_one + fishtech + education, data = training, dist = "gaussian")
+ 
+ models[[i]] = model
+ 
+ validation = x[i,]
+ pred = predict(model, validation[,setdiff(names(validation),label)])
+
+ #score[[i]] = rmse(pred, validation[[label]]) # score/error of ith fold
+ score[[i]] = mean(residuals(model))
+ 
+  save_plot(plot(residuals(models[[i]])), file = paste0("CV/",  "CV", i, ".png"))
+  
+  score_df <- data.frame(unlist(score))
+  
+ }
+
+ # return(unlist(score)) # returns a vector
+ # }
+
+
+LOOCV_function(bind_interval_final, "e")
+
+#library(fic)
+ 
+
+# training1 = x[-1,] %>%
+#    arrange(survey_id)
+#  training_intervals = with(training1, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(training1)), type = "interval"))
+#  
+#  model1 = survreg(training_intervals ~ sos + info + own + rank_one + fishtech + education, data = training1, dist = "gaussian")
+#  
+#  training2 = x[-2,] %>%
+#    arrange(survey_id)
+#  training_intervals2 = with(training1, Surv(wtp_lower, wtp_upper, event = rep(3, nrow(training2)), type = "interval"))
+#  
+#  model2 = survreg(training_intervals2 ~ sos + info + own + rank_one + fishtech + education, data = training2, dist = "gaussian")
+#  
+#  fic(model1,sub=list(model1, model2))
+ 
+# library(rms)
+#  
+#  validate(int_15, method="crossvalidation", B=40,
+#          bw=FALSE, rule="aic", type="residual", sls=0.05, aics=0, 
+#          force=NULL, estimates=TRUE, pr=FALSE)
+#  
+#  survregDtest(int_15)
+
+```
+
+
+
+Do LOOCV with log log model (not possible to calculate rmse with interval regression?):
+```{r, eval = FALSE}
+wtp_lm_15 <- lm(log(wtp + 1 - min(wtp)) ~ sos + info + own  + fishtech + rank_one + education, data = bind_log_final) 
+
+score_log = list()
+models_log = list()
+
+ LOOCV_function_log = function(x,label){
+  #x = bind_log_final
+  #label = "wtp"
+ for(i in 1:nrow(x)){
+   #i = 1
+   
+ training = x[-i,] 
+
+ 
+ model = lm(log(wtp + 1 - min(wtp)) ~ sos + info + own  + fishtech + rank_one + education, data = training) 
+ 
+ models_log[[i]] = model
+ 
+ validation = x[i,]
+ pred = exp(predict(model, validation[,setdiff(names(validation),label)])) - 1 + (-5.35)
+
+ score_log[[i]] = rmse(validation[[label]], pred) # score/error of ith fold
+
+  
+ }
+  #return(mean(unlist(score)))
+   return( unlist(score_log))# returns a vector
+ }
+ 
+ LOOCV_function_log(bind_log_final, "wtp") # mean rmse of log log model is 2.121991
+ 
+#   [1] 6.39801220 6.04210334 4.20290977 5.04662678 5.01595534 8.20812956 2.25212089 2.39053501
+#   [9] 1.81841013 2.06080969 4.20120509 1.31863019 1.81841013 5.25619190 5.40032046 2.02926740
+#  [17] 1.44515597 5.40032046 5.25619190 0.08131862 0.87862680 1.22871622 0.27718803 0.63342844
+#  [25] 0.29453077 1.00766271 1.35446717 0.25991879 2.45524101 0.73663628 1.35446717 2.03009404
+#  [33] 5.71529495 0.08131862 5.79990411 0.16472670 0.02872509 3.94616450 0.60508722 4.87993854
+#  [41] 3.66350843 4.70788814 0.16472670 0.17401112 3.97196975 2.50550618 1.46275640 0.08131862
+#  [49] 1.95935392 2.42435197 2.41055241 4.20120509 3.97196975 1.81841013 1.24608215 3.55074209
+#  [57] 0.91544166 2.51159393 0.29453077 0.16033947 0.79299877 4.45176486 4.59361287 0.53896801
+#  [65] 0.98581401 0.12485149 2.62922204 0.17401112 0.91544166 4.28616687 1.44515597 0.63342844
+#  [73] 0.16472670 0.42435989 2.56071890 0.59070949 0.71163933 2.59748965 1.30811920 0.31413686
+#  [81] 4.70504030 4.67066067 3.79129163 5.73358209 2.48262263 2.40757507 1.52785405 5.10766155
+#  [89] 3.55726640 2.67228982 5.91883479 1.48116588 3.87404846 1.15570532 0.86042653 1.30542855
+#  [97] 2.16067162 3.06508645 0.62288564 0.96464869 1.59756322 3.81951941 3.45490825 5.06954376
+# [105] 3.90699777 2.03782422 1.21299106 3.25556476 2.71946854 0.56567466 3.62846868 0.72988992
+# [113] 2.51615852 0.68045817 2.17297347 0.22751610 0.91842649 2.06842459 1.33693394 0.96052969
+# [121] 1.25293222 0.94009777 0.55389328 1.92249107 1.21299106 3.31568852 0.96464869 3.47179739
+# [129] 2.12821984 1.73991053 1.34728453 0.83071110 0.47612036 2.21428548 1.59794342 0.65430690
+# [137] 1.99262994 0.94009777 0.26316768 0.56567466 0.55818159 0.94009777 0.70449837 1.67319470
+# [145] 0.29880750 0.39249907 1.21299106 3.04757498 1.58749604 1.83481070 1.90426775 0.73951711
+# [153] 0.96989333 0.96989333 0.93678504 0.26316768 0.86427985 0.73951711 0.48491111 1.73991053
+# [161] 0.48491111 0.83427668 0.18448313 0.29880750 0.35303107 1.50439032 1.63049906 1.98445937
+# [169] 1.72000951 0.21185238 0.45348880 5.28999383 4.26317858 5.99505545 1.84584517 1.95706592
+# [177] 3.29312347 6.11805119 4.17982865 0.86114605 0.22751610 0.32701710 5.40428024 1.18271010
+# [185] 6.23838228 6.71769112 1.99262994 0.37436664
+ 
+ pred_overall <- exp(predict(wtp_lm_15, bind_log_final) - 1 + (-5.35))
+ 
+  rmse(
+    pred_overall, bind_log_final$wtp) # 4.022098
+  
+  #4.022098 > 2.55 which implies that we could be overfitting our model. 
+  
+  # But overall, our mean rmse (2.121991) is generally small among our training predictions, since our wtp values have such a large range. This means we have a pretty good fit. 
+ 
+```
+
+
+Stargazer table of interval regression models we tested
+```{r stargazer, results = 'asis'}
+
+library(stargazer)
+
+# a. Prepare a nice regression table:
+
+lm_table <- stargazer(int_tech, int, int_1, int_2, int_3, int_4, int_5, int_6, int_7, int_8, int_9, int_10, int_11, int_12, int_13, int_15, int_16, type = "html")
+
+# Note: If you want to work with this in Word, save to html, open, copy and paste into Word. 
+
+```
+
